@@ -55,6 +55,8 @@ how to start it.
 - Type your message and press **Enter** to send it.
 - While Claude is replying, the input box is locked; incoming text streams
   in live, and a status line shows when Claude is calling an MCP tool.
+- After each reply a line shows that turn's latency, input/output tokens,
+  number of API calls and estimated cost.
 - **↑ / ↓** scroll the conversation one line at a time, **PageUp / PageDown**
   scroll by a page, **End** jumps back to the latest message.
 - **Esc** or **Ctrl-C** quits.
@@ -74,15 +76,20 @@ All configuration is via environment variables (see `.env.example`):
 ## Project layout
 
 ```
+prompts/
+└── system_v2.md   current system prompt (versioned; see docs/REPORTE.md)
 src/
-├── main.rs    entry point, MCP connection, terminal setup, event loop
-├── app.rs     application state (conversation history, input, scroll)
-├── ui.rs      ratatui rendering
-├── claude.rs  Claude API client (SSE streaming + the client-side
-│              tool-use loop that executes MCP tool calls)
-├── mcp.rs     MCP client for Corpo-Metrics (JSON-RPC over HTTP:
-│              initialize, tools/list, tools/call)
-└── config.rs  environment-variable configuration
+├── lib.rs         shared core used by the TUI and the evaluation harness
+├── main.rs        TUI entry point, MCP connection, terminal setup, event loop
+├── app.rs         application state (conversation history, input, scroll)
+├── ui.rs          ratatui rendering
+├── claude.rs      Claude API client (SSE streaming, usage accounting and
+│                  the client-side tool-use loop that executes MCP calls)
+├── mcp.rs         MCP client for Corpo-Metrics (JSON-RPC over HTTP:
+│                  initialize, tools/list, tools/call)
+├── pricing.rs     token usage and per-model cost estimate
+├── config.rs      environment-variable configuration
+└── bin/eval/      evaluation harness (see ../eval/README.md)
 ```
 
 ## How it works

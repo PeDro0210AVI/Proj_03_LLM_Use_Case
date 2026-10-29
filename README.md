@@ -21,7 +21,8 @@ user ──► TUI chatbot ──► Claude (Messages API, cloud)
 | ------------------------ | ------------------------------------------------------------------ |
 | `Corpo-Metrics/`         | MCP server (Rust): exposes 10 business-metric tools over HTTP      |
 | `Corpo-Metrics-Chatbot/` | TUI chat client (Rust): Claude + the Corpo-Metrics tools           |
-| `docs/`                  | Assignment brief                                                   |
+| `eval/`                  | Evaluation set, harness runner script and results                  |
+| `docs/`                  | Assignment brief, written report draft, architecture diagram       |
 | `flake.nix`              | Nix dev shell and packages for both crates                         |
 
 Both crates are members of one Cargo workspace (`Cargo.toml`) and share
@@ -42,5 +43,14 @@ cd Corpo-Metrics-Chatbot && cargo run
 
 See each crate's README for details:
 [server](Corpo-Metrics/README.md), [chatbot](Corpo-Metrics-Chatbot/README.md).
+
+## Reproducing the evaluation
+
+```sh
+./eval/run_all.sh    # needs ANTHROPIC_API_KEY; spends API credits (≈ $4–6)
+```
+
+See [eval/README.md](eval/README.md) for the metrics and how each run is
+scored, and [docs/REPORTE.md](docs/REPORTE.md) for the written report.
 
 Never commit `.env` — it is git-ignored.

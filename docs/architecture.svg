@@ -1,0 +1,117 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 760" width="1200" height="760" font-family="Inter, Segoe UI, Helvetica, Arial, sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#94a3b8"/>
+    </marker>
+    <style>
+      .title { font-size: 26px; font-weight: 700; fill: #0f172a; }
+      .subtitle { font-size: 14px; fill: #475569; }
+      .box-title { font-size: 17px; font-weight: 700; fill: #0f172a; }
+      .box-text { font-size: 13px; fill: #334155; }
+      .mono { font-family: "JetBrains Mono", Consolas, monospace; font-size: 12px; fill: #334155; }
+      .step { font-size: 13px; fill: #0f172a; }
+      .step-num { font-size: 13px; font-weight: 700; fill: #ffffff; }
+      .zone { font-size: 12px; font-weight: 700; letter-spacing: 1.5px; fill: #64748b; }
+      .muted { font-size: 12.5px; fill: #64748b; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="760" fill="#ffffff"/>
+
+  <text x="40" y="48" class="title">Corpo Metrics — pipeline end-to-end</text>
+  <text x="40" y="72" class="subtitle">Pregunta en lenguaje natural → Claude decide qué herramienta MCP usar → datos de la empresa → respuesta citando solo cifras de las herramientas</text>
+
+  <!-- Zones -->
+  <rect x="24" y="96" width="760" height="420" rx="14" fill="#f8fafc" stroke="#e2e8f0"/>
+  <text x="44" y="122" class="zone">MÁQUINA LOCAL</text>
+  <rect x="808" y="96" width="368" height="420" rx="14" fill="#f5f3ff" stroke="#e9d5ff"/>
+  <text x="828" y="122" class="zone">NUBE (ANTHROPIC)</text>
+
+  <!-- User / TUI -->
+  <rect x="48" y="150" width="200" height="140" rx="10" fill="#ffffff" stroke="#0ea5e9" stroke-width="2"/>
+  <text x="66" y="180" class="box-title">Usuario (gerente)</text>
+  <text x="66" y="204" class="box-text">TUI en terminal (ratatui)</text>
+  <text x="66" y="226" class="box-text">streaming de la respuesta,</text>
+  <text x="66" y="246" class="box-text">estado de herramientas,</text>
+  <text x="66" y="266" class="box-text">latencia · tokens · costo</text>
+
+  <!-- Chatbot core -->
+  <rect x="300" y="150" width="240" height="190" rx="10" fill="#ffffff" stroke="#0f172a" stroke-width="2"/>
+  <text x="318" y="180" class="box-title">Chatbot (Rust)</text>
+  <text x="318" y="206" class="mono">ClaudeClient</text>
+  <text x="318" y="224" class="box-text">· prompt de sistema v2</text>
+  <text x="318" y="242" class="box-text">· bucle tool_use (máx. 10)</text>
+  <text x="318" y="260" class="box-text">· parser SSE, conteo de uso</text>
+  <text x="318" y="288" class="mono">McpClient</text>
+  <text x="318" y="306" class="box-text">· initialize · tools/list</text>
+  <text x="318" y="324" class="box-text">· tools/call (JSON-RPC)</text>
+
+  <!-- MCP server -->
+  <rect x="300" y="384" width="240" height="116" rx="10" fill="#ffffff" stroke="#16a34a" stroke-width="2"/>
+  <text x="318" y="412" class="box-title">Corpo-Metrics MCP server</text>
+  <text x="318" y="434" class="box-text">HTTP :8080 · 10 herramientas:</text>
+  <text x="318" y="454" class="box-text">ventas, finanzas, clientes, proyectos,</text>
+  <text x="318" y="472" class="box-text">equipo, producto, inventario,</text>
+  <text x="318" y="490" class="box-text">resumen ejecutivo, anomalías</text>
+
+  <!-- Data -->
+  <rect x="580" y="384" width="184" height="116" rx="10" fill="#ffffff" stroke="#16a34a" stroke-dasharray="5 4" stroke-width="1.5"/>
+  <text x="598" y="412" class="box-title">Datos</text>
+  <text x="598" y="434" class="mono">data/dummy/*.json</text>
+  <text x="598" y="454" class="box-text">8 archivos · ≈6 KB</text>
+  <text x="598" y="472" class="box-text">(sintéticos)</text>
+
+  <!-- Claude -->
+  <rect x="840" y="150" width="310" height="190" rx="10" fill="#ffffff" stroke="#7c3aed" stroke-width="2"/>
+  <text x="858" y="180" class="box-title">Claude — Messages API</text>
+  <text x="858" y="204" class="mono">POST /v1/messages (stream)</text>
+  <text x="858" y="230" class="box-text">· tokenización del prompt</text>
+  <text x="858" y="250" class="box-text">· decide herramienta + argumentos</text>
+  <text x="858" y="270" class="box-text">  (tool_use con JSON Schema)</text>
+  <text x="858" y="290" class="box-text">· redacta la respuesta final</text>
+  <text x="858" y="310" class="box-text">  a partir de los tool_result</text>
+  <text x="858" y="330" class="muted">modelo: claude-sonnet-5 (configurable)</text>
+
+  <!-- Arrows main flow -->
+  <line x1="248" y1="200" x2="296" y2="200" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="296" y1="250" x2="252" y2="250" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="540" y1="200" x2="836" y2="200" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="836" y1="300" x2="544" y2="300" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="390" y1="340" x2="390" y2="380" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="450" y1="384" x2="450" y2="344" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+  <line x1="540" y1="442" x2="576" y2="442" stroke="#334155" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step badges -->
+  <g>
+    <circle cx="272" cy="186" r="11" fill="#0ea5e9"/><text x="268" y="191" class="step-num">1</text>
+    <circle cx="690" cy="186" r="11" fill="#7c3aed"/><text x="686" y="191" class="step-num">2</text>
+    <circle cx="690" cy="314" r="11" fill="#7c3aed"/><text x="686" y="319" class="step-num">3</text>
+    <circle cx="372" cy="362" r="11" fill="#16a34a"/><text x="368" y="367" class="step-num">4</text>
+    <circle cx="558" cy="426" r="11" fill="#16a34a"/><text x="554" y="431" class="step-num">5</text>
+    <circle cx="468" cy="362" r="11" fill="#16a34a"/><text x="464" y="367" class="step-num">6</text>
+    <circle cx="272" cy="264" r="11" fill="#0ea5e9"/><text x="268" y="269" class="step-num">7</text>
+  </g>
+
+  <!-- Legend of steps -->
+  <text x="48" y="560" class="box-title">Flujo de una pregunta</text>
+  <text x="48" y="586" class="step"><tspan font-weight="700">1</tspan>  El usuario escribe una pregunta (español o inglés).</text>
+  <text x="48" y="608" class="step"><tspan font-weight="700">2</tspan>  Se envía prompt de sistema + definiciones de 10 herramientas (≈0.8 K tokens) + historial.</text>
+  <text x="48" y="630" class="step"><tspan font-weight="700">3</tspan>  Claude responde con <tspan class="mono">tool_use</tspan> (nombre + argumentos) y <tspan class="mono">stop_reason: tool_use</tspan>.</text>
+  <text x="48" y="652" class="step"><tspan font-weight="700">4</tspan>  El chatbot ejecuta la llamada como <tspan class="mono">tools/call</tspan> en el servidor MCP local.</text>
+  <text x="48" y="674" class="step"><tspan font-weight="700">5</tspan>  El servidor lee los JSON, calcula (p. ej. % de cambio) y devuelve texto formateado.</text>
+  <text x="48" y="696" class="step"><tspan font-weight="700">6</tspan>  El resultado vuelve a Claude como <tspan class="mono">tool_result</tspan>; se repite 2–6 si hace falta.</text>
+  <text x="48" y="718" class="step"><tspan font-weight="700">7</tspan>  La respuesta final se transmite (SSE) a la TUI junto con latencia, tokens y costo.</text>
+
+  <!-- Evaluation branch -->
+  <rect x="808" y="540" width="368" height="190" rx="14" fill="#fffbeb" stroke="#fde68a"/>
+  <text x="828" y="566" class="zone">EVALUACIÓN (offline)</text>
+  <text x="828" y="594" class="box-text"><tspan class="mono">eval/cases.json</tspan> — 50 casos con</text>
+  <text x="828" y="614" class="box-text">herramientas, argumentos y cifras esperadas</text>
+  <text x="828" y="640" class="box-text"><tspan class="mono">eval</tspan> — mismo bucle del chatbot +</text>
+  <text x="828" y="660" class="box-text">métricas deterministas + juez LLM</text>
+  <text x="828" y="680" class="box-text">(claude-sonnet-5-5, validado vs. humano)</text>
+  <text x="828" y="706" class="box-text">→ <tspan class="mono">eval/results/iterations.csv</tspan></text>
+</svg>
