@@ -6,7 +6,9 @@ MCP server that exposes corporate business metrics to any MCP-compatible AI clie
 cargo run
 ```
 
-Starts an HTTP server on `127.0.0.1:8080`. The data is read from `data/dummy/` JSON files.
+Starts an HTTP server on `127.0.0.1:8080` (override with the `HOST` and `PORT`
+environment variables). Run it from this directory: the data is read from
+`data/dummy/` JSON files relative to the working directory.
 
 ## Connecting as MCP server
 
@@ -40,8 +42,10 @@ Add to your client's MCP config (`.mcp.json` is already set up for Claude Code):
 
 ## Dev shell (Nix)
 
+The flake lives at the repository root (shared with the chatbot):
+
 ```bash
-nix develop
+cd .. && nix develop
 ```
 
 Provides `cargo`, `rust-analyzer`, `clippy`, `rustfmt`, `bacon`, and `claude-code`.
