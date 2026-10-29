@@ -3,16 +3,22 @@ use serde_json::{json, Value};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::config::Config;
-use crate::local_mcp::LocalMcpRegistry;
+use crate::mcp::McpClient;
 
 const API_URL: &str = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
-/// Beta flag for the MCP connector: lets Claude call tools on the remote MCP
-/// server directly from the Messages API (no local MCP client needed for it).
-const MCP_CONNECTOR_BETA: &str = "mcp-client-2025-11-20";
-/// Safety cap on client-side tool-use round trips per user message, so a
-/// misbehaving local tool (or a model stuck calling it) can't loop forever.
+/// Safety cap on tool-use round trips per user message, so a misbehaving
+/// tool (or a model stuck calling it) can't loop forever.
 const MAX_TOOL_ROUNDS: u32 = 10;
+
+const SYSTEM_PROMPT: &str = "\
+You are Corpo Metrics, an assistant for managers who need quick answers about \
+their company's business metrics (sales, finance, customers, projects, teams, \
+product health and inventory).
+- Get every figure from the available tools; never invent or estimate numbers.
+- If no tool can answer the question, say so instead of guessing.
+- Reply in the same language the user writes in.
+- Be concise: lead with the answer, then short bullet points or a small table.";
 
 /// Events streamed back from a conversation turn, consumed by the UI loop.
 #[derive(Debug, Clone)]
@@ -36,9 +42,6 @@ pub struct ClaudeClient {
     api_key: String,
     model: String,
     max_tokens: u32,
-    mcp_server_name: String,
-    mcp_server_url: String,
-    mcp_auth_token: Option<String>,
 }
 
 impl ClaudeClient {
@@ -48,34 +51,16 @@ impl ClaudeClient {
             api_key: config.api_key.clone(),
             model: config.model.clone(),
             max_tokens: config.max_tokens,
-            mcp_server_name: config.mcp_server_name.clone(),
-            mcp_server_url: config.mcp_server_url.clone(),
-            mcp_auth_token: config.mcp_auth_token.clone(),
         }
     }
 
-    fn build_body(&self, messages: &[Value], local_tool_defs: &[Value]) -> Value {
-        let mut mcp_server = json!({
-            "type": "url",
-            "name": self.mcp_server_name,
-            "url": self.mcp_server_url,
-        });
-        if let Some(token) = &self.mcp_auth_token {
-            mcp_server["authorization_token"] = json!(token);
-        }
-
-        let mut tools = vec![json!({
-            "type": "mcp_toolset",
-            "mcp_server_name": self.mcp_server_name
-        })];
-        tools.extend(local_tool_defs.iter().cloned());
-
+    fn build_body(&self, messages: &[Value], tool_defs: &[Value]) -> Value {
         json!({
             "model": self.model,
             "max_tokens": self.max_tokens,
             "stream": true,
-            "mcp_servers": [mcp_server],
-            "tools": tools,
+            "system": SYSTEM_PROMPT,
+            "tools": tool_defs,
             "messages": messages,
         })
     }
@@ -83,14 +68,14 @@ impl ClaudeClient {
     pub async fn run_turn(
         &self,
         mut history: Vec<Value>,
-        local: &LocalMcpRegistry,
+        mcp: &McpClient,
         tx: UnboundedSender<ApiEvent>,
     ) {
-        let local_tool_defs = local.tool_defs();
+        let tool_defs = mcp.tool_defs();
         let mut new_messages: Vec<Value> = Vec::new();
 
         for _ in 0..MAX_TOOL_ROUNDS {
-            let Some(step) = self.stream_once(&history, local_tool_defs, &tx).await else {
+            let Some(step) = self.stream_once(&history, tool_defs, &tx).await else {
                 // stream_once already reported the error.
                 return;
             };
@@ -115,20 +100,15 @@ impl ClaudeClient {
                     let input = block.get("input").cloned().unwrap_or(json!({}));
                     Some((id, name, input))
                 })
-                .filter(|(_, name, _)| local.is_local_tool(name))
                 .collect();
 
             if pending.is_empty() {
-                // Nothing here is one of our local tools (e.g. it was an
-                // mcp_tool_use, which Anthropic already resolved and would
-                // have carried a different stop_reason) — nothing more we
-                // can do.
                 break;
             }
 
             let mut tool_results = Vec::with_capacity(pending.len());
             for (id, name, input) in pending {
-                let (text, is_error) = local.call(&name, input).await;
+                let (text, is_error) = mcp.call(&name, input).await;
                 let _ = tx.send(ApiEvent::ToolResult { is_error });
                 tool_results.push(json!({
                     "type": "tool_result",
@@ -149,17 +129,16 @@ impl ClaudeClient {
     async fn stream_once(
         &self,
         messages: &[Value],
-        local_tool_defs: &[Value],
+        tool_defs: &[Value],
         tx: &UnboundedSender<ApiEvent>,
     ) -> Option<StepResult> {
-        let body = self.build_body(messages, local_tool_defs);
+        let body = self.build_body(messages, tool_defs);
 
         let response = match self
             .http
             .post(API_URL)
             .header("x-api-key", &self.api_key)
             .header("anthropic-version", ANTHROPIC_VERSION)
-            .header("anthropic-beta", MCP_CONNECTOR_BETA)
             .header("content-type", "application/json")
             .json(&body)
             .send()
@@ -190,7 +169,7 @@ impl ClaudeClient {
         // Accumulators for the block currently being streamed. Which ones
         // apply depends on the block's type: "text" fills current_text via
         // text_delta, "thinking" fills current_text via thinking_delta and
-        // current_signature via signature_delta, "mcp_tool_use"/"tool_use"
+        // current_signature via signature_delta, "tool_use"
         // fills current_partial_json via input_json_delta.
         let mut current_text = String::new();
         let mut current_signature = String::new();
@@ -225,25 +204,13 @@ impl ClaudeClient {
                 match event_type {
                     "content_block_start" => {
                         let block = event.get("content_block").cloned().unwrap_or(json!({}));
-                        let block_type = block.get("type").and_then(Value::as_str).unwrap_or("");
-
-                        match block_type {
-                            "mcp_tool_use" | "tool_use" => {
-                                let name = block
-                                    .get("name")
-                                    .and_then(Value::as_str)
-                                    .unwrap_or("tool")
-                                    .to_string();
-                                let _ = tx.send(ApiEvent::ToolUse { name });
-                            }
-                            "mcp_tool_result" => {
-                                let is_error = block
-                                    .get("is_error")
-                                    .and_then(Value::as_bool)
-                                    .unwrap_or(false);
-                                let _ = tx.send(ApiEvent::ToolResult { is_error });
-                            }
-                            _ => {}
+                        if block.get("type").and_then(Value::as_str) == Some("tool_use") {
+                            let name = block
+                                .get("name")
+                                .and_then(Value::as_str)
+                                .unwrap_or("tool")
+                                .to_string();
+                            let _ = tx.send(ApiEvent::ToolUse { name });
                         }
 
                         current_text.clear();
@@ -298,7 +265,7 @@ impl ClaudeClient {
                                         block["signature"] = json!(current_signature);
                                     }
                                 }
-                                Some("mcp_tool_use") | Some("tool_use") => {
+                                Some("tool_use") => {
                                     if !current_partial_json.is_empty() {
                                         if let Ok(parsed) =
                                             serde_json::from_str::<Value>(&current_partial_json)

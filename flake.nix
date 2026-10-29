@@ -120,10 +120,6 @@
                 rustfmt
                 taplo # lsp for cargo.toml
 
-                # local LLM runtime used by the chatbot (swap for
-                # `ollama-cuda` / `ollama-rocm` to use a GPU)
-                ollama
-
                 claude-code # the demon itself
               ];
 

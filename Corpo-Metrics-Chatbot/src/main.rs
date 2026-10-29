@@ -1,13 +1,13 @@
 mod app;
 mod claude;
 mod config;
-mod local_mcp;
+mod mcp;
 mod ui;
 
 use std::io;
 use std::sync::Arc;
 
-use anyhow::Result;
+use anyhow::{Context, Result};
 use crossterm::event::{
     self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind, KeyModifiers,
 };
@@ -20,7 +20,7 @@ use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 use app::App;
 use claude::{ApiEvent, ClaudeClient};
 use config::Config;
-use local_mcp::LocalMcpRegistry;
+use mcp::McpClient;
 
 enum LoopEvent {
     Term(Event),
@@ -32,7 +32,15 @@ async fn main() -> Result<()> {
     let config = Config::load()?;
     let client = Arc::new(ClaudeClient::new(&config));
 
-    let local = Arc::new(LocalMcpRegistry::connect(config.local_mcp_servers()).await);
+    let mcp = McpClient::connect(&config.mcp_server_url, config.mcp_auth_token.clone())
+        .await
+        .with_context(|| {
+            format!(
+                "couldn't reach the Corpo-Metrics MCP server at {} — start it with `cd Corpo-Metrics && cargo run`",
+                config.mcp_server_url
+            )
+        })?;
+    let mcp = Arc::new(mcp);
 
     enable_raw_mode()?;
     let mut stdout = io::stdout();
@@ -40,7 +48,7 @@ async fn main() -> Result<()> {
     let backend = CrosstermBackend::new(stdout);
     let mut terminal = Terminal::new(backend)?;
 
-    let result = run(&mut terminal, &config, client, local).await;
+    let result = run(&mut terminal, &config, client, mcp).await;
 
     disable_raw_mode()?;
     execute!(
@@ -57,9 +65,9 @@ async fn run(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
     config: &Config,
     client: Arc<ClaudeClient>,
-    local: Arc<LocalMcpRegistry>,
+    mcp: Arc<McpClient>,
 ) -> Result<()> {
-    let mut app = App::new(config, &local);
+    let mut app = App::new(config, &mcp);
 
     let (tx, mut rx) = unbounded_channel::<LoopEvent>();
 
@@ -86,7 +94,7 @@ async fn run(
 
         match loop_event {
             LoopEvent::Term(Event::Key(key)) if key.kind == KeyEventKind::Press => {
-                handle_key(key.code, key.modifiers, &mut app, &tx, &client, &local);
+                handle_key(key.code, key.modifiers, &mut app, &tx, &client, &mcp);
             }
             LoopEvent::Term(_) => {}
             LoopEvent::Api(event) => app.handle_api_event(event),
@@ -106,7 +114,7 @@ fn handle_key(
     app: &mut App,
     tx: &UnboundedSender<LoopEvent>,
     client: &Arc<ClaudeClient>,
-    local: &Arc<LocalMcpRegistry>,
+    mcp: &Arc<McpClient>,
 ) {
     if modifiers.contains(KeyModifiers::CONTROL) && code == KeyCode::Char('c') {
         app.should_quit = true;
@@ -117,7 +125,7 @@ fn handle_key(
         KeyCode::Esc => app.should_quit = true,
         KeyCode::Enter => {
             if let Some(history) = app.submit_input() {
-                spawn_request(history, tx.clone(), client.clone(), local.clone());
+                spawn_request(history, tx.clone(), client.clone(), mcp.clone());
             }
         }
         KeyCode::Backspace => {
@@ -145,13 +153,13 @@ fn spawn_request(
     history: Vec<serde_json::Value>,
     tx: UnboundedSender<LoopEvent>,
     client: Arc<ClaudeClient>,
-    local: Arc<LocalMcpRegistry>,
+    mcp: Arc<McpClient>,
 ) {
     tokio::spawn(async move {
         let (api_tx, mut api_rx) = unbounded_channel::<ApiEvent>();
 
         tokio::spawn(async move {
-            client.run_turn(history, &local, api_tx).await;
+            client.run_turn(history, &mcp, api_tx).await;
         });
 
         while let Some(event) = api_rx.recv().await {
