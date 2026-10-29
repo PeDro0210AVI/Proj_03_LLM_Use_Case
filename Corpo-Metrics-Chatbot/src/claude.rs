@@ -1,9 +1,12 @@
+use std::time::Instant;
+
 use futures_util::StreamExt;
 use serde_json::{json, Value};
 use tokio::sync::mpsc::UnboundedSender;
 
 use crate::config::Config;
 use crate::mcp::McpClient;
+use crate::pricing::Usage;
 
 const API_URL: &str = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION: &str = "2023-06-01";
@@ -11,14 +14,9 @@ const ANTHROPIC_VERSION: &str = "2023-06-01";
 /// tool (or a model stuck calling it) can't loop forever.
 const MAX_TOOL_ROUNDS: u32 = 10;
 
-const SYSTEM_PROMPT: &str = "\
-You are Corpo Metrics, an assistant for managers who need quick answers about \
-their company's business metrics (sales, finance, customers, projects, teams, \
-product health and inventory).
-- Get every figure from the available tools; never invent or estimate numbers.
-- If no tool can answer the question, say so instead of guessing.
-- Reply in the same language the user writes in.
-- Be concise: lead with the answer, then short bullet points or a small table.";
+/// Current system prompt. Versioned under `prompts/` so each evaluation
+/// iteration can point at the exact text it ran with.
+pub const DEFAULT_SYSTEM_PROMPT: &str = include_str!("../prompts/system_v2.md");
 
 /// Events streamed back from a conversation turn, consumed by the UI loop.
 #[derive(Debug, Clone)]
@@ -26,7 +24,7 @@ pub enum ApiEvent {
     TextDelta(String),
     ToolUse { name: String },
     ToolResult { is_error: bool },
-    Done { new_messages: Vec<Value> },
+    Done { new_messages: Vec<Value>, usage: Usage },
     Error(String),
 }
 
@@ -42,6 +40,8 @@ pub struct ClaudeClient {
     api_key: String,
     model: String,
     max_tokens: u32,
+    system_prompt: Option<String>,
+    use_tools: bool,
 }
 
 impl ClaudeClient {
@@ -51,18 +51,46 @@ impl ClaudeClient {
             api_key: config.api_key.clone(),
             model: config.model.clone(),
             max_tokens: config.max_tokens,
+            system_prompt: Some(DEFAULT_SYSTEM_PROMPT.trim().to_string()),
+            use_tools: true,
         }
     }
 
+    pub fn with_model(mut self, model: impl Into<String>) -> Self {
+        self.model = model.into();
+        self
+    }
+
+    /// `None` sends no system prompt at all.
+    pub fn with_system_prompt(mut self, prompt: Option<String>) -> Self {
+        self.system_prompt = prompt;
+        self
+    }
+
+    /// `false` hides the MCP tools from the model (the "no tools" baseline).
+    pub fn with_tools(mut self, use_tools: bool) -> Self {
+        self.use_tools = use_tools;
+        self
+    }
+
+    pub fn model(&self) -> &str {
+        &self.model
+    }
+
     fn build_body(&self, messages: &[Value], tool_defs: &[Value]) -> Value {
-        json!({
+        let mut body = json!({
             "model": self.model,
             "max_tokens": self.max_tokens,
             "stream": true,
-            "system": SYSTEM_PROMPT,
-            "tools": tool_defs,
             "messages": messages,
-        })
+        });
+        if let Some(prompt) = &self.system_prompt {
+            body["system"] = json!(prompt);
+        }
+        if self.use_tools && !tool_defs.is_empty() {
+            body["tools"] = json!(tool_defs);
+        }
+        body
     }
 
     pub async fn run_turn(
@@ -71,11 +99,13 @@ impl ClaudeClient {
         mcp: &McpClient,
         tx: UnboundedSender<ApiEvent>,
     ) {
+        let started = Instant::now();
         let tool_defs = mcp.tool_defs();
         let mut new_messages: Vec<Value> = Vec::new();
+        let mut usage = Usage::default();
 
         for _ in 0..MAX_TOOL_ROUNDS {
-            let Some(step) = self.stream_once(&history, tool_defs, &tx).await else {
+            let Some(step) = self.stream_once(&history, tool_defs, &tx, &mut usage).await else {
                 // stream_once already reported the error.
                 return;
             };
@@ -123,7 +153,8 @@ impl ClaudeClient {
             new_messages.push(user_message);
         }
 
-        let _ = tx.send(ApiEvent::Done { new_messages });
+        usage.elapsed_secs = started.elapsed().as_secs_f64();
+        let _ = tx.send(ApiEvent::Done { new_messages, usage });
     }
 
     async fn stream_once(
@@ -131,8 +162,10 @@ impl ClaudeClient {
         messages: &[Value],
         tool_defs: &[Value],
         tx: &UnboundedSender<ApiEvent>,
+        usage: &mut Usage,
     ) -> Option<StepResult> {
         let body = self.build_body(messages, tool_defs);
+        usage.api_calls += 1;
 
         let response = match self
             .http
@@ -162,7 +195,10 @@ impl ClaudeClient {
         }
 
         let mut byte_stream = response.bytes_stream();
-        let mut buf = String::new();
+        // Raw bytes, not a String: a network chunk can end in the middle of
+        // a multi-byte UTF-8 character (e.g. an accented letter), so only
+        // complete SSE frames are decoded.
+        let mut buf: Vec<u8> = Vec::new();
 
         let mut finished_blocks: Vec<Value> = Vec::new();
         let mut current_block: Option<Value> = None;
@@ -175,6 +211,7 @@ impl ClaudeClient {
         let mut current_signature = String::new();
         let mut current_partial_json = String::new();
         let mut stop_reason = String::from("end_turn");
+        let mut message_output_tokens: u64 = 0;
 
         while let Some(chunk) = byte_stream.next().await {
             let chunk = match chunk {
@@ -184,12 +221,12 @@ impl ClaudeClient {
                     return None;
                 }
             };
-            buf.push_str(&String::from_utf8_lossy(&chunk));
+            buf.extend_from_slice(&chunk);
 
             // SSE frames are separated by a blank line.
-            while let Some(pos) = buf.find("\n\n") {
-                let frame = buf[..pos].to_string();
-                buf.drain(..pos + 2);
+            while let Some(pos) = buf.windows(2).position(|w| w == b"\n\n") {
+                let frame_bytes: Vec<u8> = buf.drain(..pos + 2).collect();
+                let frame = String::from_utf8_lossy(&frame_bytes[..pos]);
 
                 let Some(data_line) = frame.lines().find_map(|l| l.strip_prefix("data: ")) else {
                     continue;
@@ -202,6 +239,15 @@ impl ClaudeClient {
                 let event_type = event.get("type").and_then(Value::as_str).unwrap_or("");
 
                 match event_type {
+                    "message_start" => {
+                        if let Some(u) = event.get("message").and_then(|m| m.get("usage")) {
+                            let count = |key: &str| u.get(key).and_then(Value::as_u64).unwrap_or(0);
+                            usage.input_tokens += count("input_tokens");
+                            usage.cache_read_input_tokens += count("cache_read_input_tokens");
+                            usage.cache_creation_input_tokens +=
+                                count("cache_creation_input_tokens");
+                        }
+                    }
                     "content_block_start" => {
                         let block = event.get("content_block").cloned().unwrap_or(json!({}));
                         if block.get("type").and_then(Value::as_str) == Some("tool_use") {
@@ -283,6 +329,14 @@ impl ClaudeClient {
                         current_partial_json.clear();
                     }
                     "message_delta" => {
+                        // `usage.output_tokens` here is cumulative for this call.
+                        if let Some(out) = event
+                            .get("usage")
+                            .and_then(|u| u.get("output_tokens"))
+                            .and_then(Value::as_u64)
+                        {
+                            message_output_tokens = out;
+                        }
                         if let Some(sr) = event
                             .get("delta")
                             .and_then(|d| d.get("stop_reason"))
@@ -302,6 +356,7 @@ impl ClaudeClient {
                         return None;
                     }
                     "message_stop" => {
+                        usage.output_tokens += message_output_tokens;
                         return Some(StepResult {
                             content: finished_blocks,
                             stop_reason,
@@ -314,6 +369,7 @@ impl ClaudeClient {
 
         // Stream ended without an explicit message_stop (shouldn't normally
         // happen, but don't leave the UI hanging).
+        usage.output_tokens += message_output_tokens;
         Some(StepResult {
             content: finished_blocks,
             stop_reason,

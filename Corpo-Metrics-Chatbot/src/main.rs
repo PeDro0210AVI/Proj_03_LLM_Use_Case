@@ -1,7 +1,4 @@
 mod app;
-mod claude;
-mod config;
-mod mcp;
 mod ui;
 
 use std::io;
@@ -18,9 +15,9 @@ use ratatui::Terminal;
 use tokio::sync::mpsc::{unbounded_channel, UnboundedSender};
 
 use app::App;
-use claude::{ApiEvent, ClaudeClient};
-use config::Config;
-use mcp::McpClient;
+use corpo_metrics_chatbot::claude::{ApiEvent, ClaudeClient};
+use corpo_metrics_chatbot::config::Config;
+use corpo_metrics_chatbot::mcp::McpClient;
 
 enum LoopEvent {
     Term(Event),

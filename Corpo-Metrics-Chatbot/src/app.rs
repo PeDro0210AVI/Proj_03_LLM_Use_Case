@@ -1,8 +1,9 @@
 use serde_json::{json, Value};
 
-use crate::claude::ApiEvent;
-use crate::config::Config;
-use crate::mcp::McpClient;
+use corpo_metrics_chatbot::claude::ApiEvent;
+use corpo_metrics_chatbot::config::Config;
+use corpo_metrics_chatbot::mcp::McpClient;
+use corpo_metrics_chatbot::pricing::Usage;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Role {
@@ -20,6 +21,7 @@ pub struct DisplayMessage {
 
 pub struct App {
     pub header: String,
+    model: String,
     pub history: Vec<Value>,
     pub display: Vec<DisplayMessage>,
     pub input: String,
@@ -44,6 +46,7 @@ impl App {
 
         Self {
             header,
+            model: config.model.clone(),
             history: Vec::new(),
             display: vec![DisplayMessage {
                 role: Role::System,
@@ -124,13 +127,17 @@ impl App {
                     },
                 });
             }
-            ApiEvent::Done { new_messages } => {
+            ApiEvent::Done { new_messages, usage } => {
                 // May be more than one assistant/user pair if the turn
                 // involved MCP tool round trips.
                 self.history.extend(new_messages);
                 self.is_streaming = false;
                 self.open_text_idx = None;
                 self.status = None;
+                self.display.push(DisplayMessage {
+                    role: Role::System,
+                    text: turn_stats(&usage, &self.model),
+                });
             }
             ApiEvent::Error(msg) => {
                 self.display.push(DisplayMessage {
@@ -160,4 +167,19 @@ impl App {
         self.follow = true;
         self.scroll_offset = 0;
     }
+}
+
+/// One-line operational summary shown after every reply.
+fn turn_stats(usage: &Usage, model: &str) -> String {
+    let cost = usage
+        .cost_usd(model)
+        .map(|c| format!(" · ~${c:.4}"))
+        .unwrap_or_default();
+    format!(
+        "{:.1} s · {} in / {} out tokens · {} API call(s){cost}",
+        usage.elapsed_secs,
+        usage.total_input_tokens(),
+        usage.output_tokens,
+        usage.api_calls,
+    )
 }
