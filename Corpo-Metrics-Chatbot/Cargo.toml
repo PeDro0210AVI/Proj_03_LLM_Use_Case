@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 description = "A terminal UI chat client for a local Ollama model, wired to the Corpo-Metrics MCP server."
 license = "MIT"
+default-run = "corpo-metrics-chatbot"
 
 [[bin]]
 name = "corpo-metrics-chatbot"
