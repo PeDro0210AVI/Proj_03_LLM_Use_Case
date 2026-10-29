@@ -1,0 +1,27 @@
+{
+  "headcount": {
+    "total": 142,
+    "full_time": 128,
+    "contractors": 14,
+    "by_department": {
+      "Engineering": 58,
+      "Sales": 31,
+      "Marketing": 18,
+      "Operations": 14,
+      "HR": 9,
+      "Finance": 7,
+      "Leadership": 5
+    }
+  },
+  "vacancies": {
+    "total": 17,
+    "offers_pending": 4,
+    "avg_time_to_fill_days": 45,
+    "by_department": {
+      "Engineering": 8,
+      "Sales": 5,
+      "Marketing": 2,
+      "Operations": 2
+    }
+  }
+}

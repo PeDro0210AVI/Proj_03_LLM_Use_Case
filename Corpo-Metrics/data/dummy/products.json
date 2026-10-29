@@ -1,0 +1,74 @@
+{
+  "products": [
+    {
+      "rank": 1,
+      "name": "Enterprise Suite Pro",
+      "revenue": 892500.00,
+      "units_sold": 118,
+      "category": "Software"
+    },
+    {
+      "rank": 2,
+      "name": "Analytics Dashboard",
+      "revenue": 657000.00,
+      "units_sold": 342,
+      "category": "Software"
+    },
+    {
+      "rank": 3,
+      "name": "Cloud Storage Plan",
+      "revenue": 435200.00,
+      "units_sold": 1820,
+      "category": "Infrastructure"
+    },
+    {
+      "rank": 4,
+      "name": "Support Premium",
+      "revenue": 318900.00,
+      "units_sold": 530,
+      "category": "Services"
+    },
+    {
+      "rank": 5,
+      "name": "API Access Plus",
+      "revenue": 274600.00,
+      "units_sold": 274,
+      "category": "Software"
+    },
+    {
+      "rank": 6,
+      "name": "Starter Pack",
+      "revenue": 198400.00,
+      "units_sold": 992,
+      "category": "Software"
+    },
+    {
+      "rank": 7,
+      "name": "Custom Integration",
+      "revenue": 175000.00,
+      "units_sold": 35,
+      "category": "Services"
+    },
+    {
+      "rank": 8,
+      "name": "Training Bundle",
+      "revenue": 142100.00,
+      "units_sold": 410,
+      "category": "Services"
+    },
+    {
+      "rank": 9,
+      "name": "Mobile SDK",
+      "revenue": 189300.00,
+      "units_sold": 210,
+      "category": "Software"
+    },
+    {
+      "rank": 10,
+      "name": "Reporting Module",
+      "revenue": 169800.00,
+      "units_sold": 283,
+      "category": "Software"
+    }
+  ]
+}

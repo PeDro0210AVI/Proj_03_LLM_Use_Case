@@ -1,0 +1,22 @@
+# build output
+target/
+Cargo.lock.bak
+*.log
+
+# environment / secrets
+.env
+.env.*
+!.env.example
+.envrc.local
+.direnv/
+
+# editor / OS cruft
+.vscode/
+.idea/
+*.swp
+.DS_Store
+.claude/settings.local.json
+
+# nix
+result
+result-*

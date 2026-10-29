@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "corpo-metrics": {
+      "type": "http",
+      "url": "http://localhost:8080"
+    }
+  }
+}

@@ -1,0 +1,27 @@
+{
+  "active_customers": {
+    "total": 1842,
+    "enterprise": 94,
+    "mid_market": 387,
+    "smb": 1361,
+    "new_this_month": 73,
+    "churned_this_month": 21
+  },
+  "churn_rate": {
+    "monthly_pct": 1.14,
+    "annual_pct": 13.0,
+    "prev_monthly_pct": 1.42,
+    "at_risk_accounts": 37
+  },
+  "sales_pipeline": {
+    "total_value": 2140000.00,
+    "avg_deal_size": 51000.00,
+    "deals": {
+      "prospecting": 42,
+      "qualification": 28,
+      "proposal": 19,
+      "negotiation": 11,
+      "closed_this_month": 8
+    }
+  }
+}

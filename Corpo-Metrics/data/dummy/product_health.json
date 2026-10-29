@@ -1,0 +1,23 @@
+{
+  "active_users": {
+    "dau": 3840,
+    "wau": 12600,
+    "mau": 38200,
+    "dau_mau_ratio": 0.101,
+    "growth_mom_pct": 4.2
+  },
+  "uptime": {
+    "current_month_pct": 99.94,
+    "last_incident": "2026-07-28",
+    "incident_count_ytd": 3,
+    "avg_response_ms": 187
+  },
+  "open_tickets": {
+    "total": 214,
+    "critical": 3,
+    "high": 28,
+    "medium": 91,
+    "low": 92,
+    "avg_resolution_hours": 18.4
+  }
+}

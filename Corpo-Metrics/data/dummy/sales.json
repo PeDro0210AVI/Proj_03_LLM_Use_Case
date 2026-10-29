@@ -1,0 +1,46 @@
+{
+  "metrics": {
+    "day": {
+      "current": {
+        "revenue": 12543.50,
+        "orders": 47,
+        "avg_order": 266.88,
+        "units_sold": 134
+      },
+      "previous": {
+        "revenue": 10230.00,
+        "orders": 39,
+        "avg_order": 262.31,
+        "units_sold": 112
+      }
+    },
+    "month": {
+      "current": {
+        "revenue": 287640.00,
+        "orders": 1082,
+        "avg_order": 265.84,
+        "units_sold": 3240
+      },
+      "previous": {
+        "revenue": 261200.00,
+        "orders": 980,
+        "avg_order": 266.53,
+        "units_sold": 2940
+      }
+    },
+    "year": {
+      "current": {
+        "revenue": 3452800.00,
+        "orders": 12960,
+        "avg_order": 266.42,
+        "units_sold": 38880
+      },
+      "previous": {
+        "revenue": 3136000.00,
+        "orders": 11760,
+        "avg_order": 266.67,
+        "units_sold": 35280
+      }
+    }
+  }
+}

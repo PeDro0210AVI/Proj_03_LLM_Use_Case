@@ -1,0 +1,23 @@
+{
+  "categories": {
+    "Software Licenses": {
+      "available": 2800,
+      "in_use": 1842,
+      "reserved": 350,
+      "expiring_soon": 120
+    },
+    "Hardware": {
+      "available": 47,
+      "in_use": 198,
+      "reserved": 12,
+      "expiring_soon": 0
+    },
+    "Cloud Credits": {
+      "available": 145000.00,
+      "in_use": 38200.00,
+      "reserved": 20000.00,
+      "expiring_soon": 5000.00
+    }
+  },
+  "last_updated": "2026-08-20"
+}

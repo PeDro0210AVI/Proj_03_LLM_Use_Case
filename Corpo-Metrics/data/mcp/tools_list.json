@@ -1,0 +1,149 @@
+{
+  "tools": [
+    {
+      "name": "get_sales_metrics",
+      "description": "Obtiene métricas de ventas (diarias, mensuales, anuales)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "period": {
+            "type": "string",
+            "enum": ["day", "month", "year"],
+            "description": "Período de tiempo"
+          },
+          "compare_to_previous": {
+            "type": "boolean",
+            "description": "Comparar con período anterior"
+          }
+        },
+        "required": ["period"]
+      }
+    },
+    {
+      "name": "get_top_products",
+      "description": "Devuelve productos/servicios más vendidos",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "Cantidad de productos a mostrar"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_financial_status",
+      "description": "Obtiene estado financiero (cash flow, gastos, márgenes)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "enum": ["cash_flow", "expenses", "profit_margin", "budget_vs_actual"],
+            "description": "Categoría financiera"
+          }
+        },
+        "required": ["category"]
+      }
+    },
+    {
+      "name": "get_customer_metrics",
+      "description": "Métricas de clientes (activos, churn, pipeline)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": ["active_customers", "churn_rate", "sales_pipeline"],
+            "description": "Tipo de métrica"
+          }
+        },
+        "required": ["metric"]
+      }
+    },
+    {
+      "name": "get_project_status",
+      "description": "Estado de proyectos internos",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "department": {
+            "type": "string",
+            "description": "Departamento (opcional para filtrar)"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_team_metrics",
+      "description": "Métricas de equipo (empleados, vacantes)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": ["headcount", "vacancies"],
+            "description": "Tipo de métrica"
+          }
+        },
+        "required": ["metric"]
+      }
+    },
+    {
+      "name": "get_product_health",
+      "description": "Salud del producto (usuarios activos, uptime, tickets)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "metric": {
+            "type": "string",
+            "enum": ["active_users", "uptime", "open_tickets"],
+            "description": "Tipo de métrica"
+          }
+        },
+        "required": ["metric"]
+      }
+    },
+    {
+      "name": "generate_executive_summary",
+      "description": "Genera resumen ejecutivo con los datos principales",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "departments": {
+            "type": "array",
+            "items": {"type": "string"},
+            "description": "Departamentos a incluir (Ventas, Finanzas, Producto, etc.)"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_anomalies",
+      "description": "Detecta datos fuera de lo normal (alertas)",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "threshold": {
+            "type": "number",
+            "description": "Porcentaje de variación para considerar anomalía (ej: 20 = 20%)"
+          }
+        }
+      }
+    },
+    {
+      "name": "get_inventory_levels",
+      "description": "Niveles de inventario",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "category": {
+            "type": "string",
+            "description": "Categoría de inventario (opcional)"
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+services:
+  mcp:
+    build:
+      context: ..
+      dockerfile: Corpo-Metrics/Dockerfile
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env

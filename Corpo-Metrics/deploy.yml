@@ -1,0 +1,7 @@
+services:
+  mcp:
+    image: corpo-metrics_mcp:latest
+    ports:
+      - "${PORT}:${PORT}"
+    env_file:
+      - .env

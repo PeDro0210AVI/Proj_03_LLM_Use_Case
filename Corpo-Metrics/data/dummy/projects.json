@@ -1,0 +1,52 @@
+{
+  "projects": [
+    {
+      "name": "Platform Redesign",
+      "department": "Engineering",
+      "status": "in_progress",
+      "completion_pct": 67,
+      "deadline": "2026-10-15",
+      "priority": "high"
+    },
+    {
+      "name": "Q3 Marketing Campaign",
+      "department": "Marketing",
+      "status": "in_progress",
+      "completion_pct": 45,
+      "deadline": "2026-09-30",
+      "priority": "medium"
+    },
+    {
+      "name": "Data Migration",
+      "department": "Engineering",
+      "status": "blocked",
+      "completion_pct": 30,
+      "deadline": "2026-09-01",
+      "priority": "high"
+    },
+    {
+      "name": "Hiring Plan H2",
+      "department": "HR",
+      "status": "completed",
+      "completion_pct": 100,
+      "deadline": "2026-08-01",
+      "priority": "medium"
+    },
+    {
+      "name": "Enterprise Sales Expansion",
+      "department": "Sales",
+      "status": "in_progress",
+      "completion_pct": 55,
+      "deadline": "2026-12-31",
+      "priority": "high"
+    },
+    {
+      "name": "Security Audit",
+      "department": "Engineering",
+      "status": "in_progress",
+      "completion_pct": 80,
+      "deadline": "2026-08-31",
+      "priority": "critical"
+    }
+  ]
+}

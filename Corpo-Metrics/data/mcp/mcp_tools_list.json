@@ -1,0 +1,14 @@
+{
+  "names":[
+    "get_sales_metrics",
+    "get_top_products",
+    "get_financial_status",
+    "get_customer_metrics",
+    "get_project_status",
+    "get_team_metrics",
+    "get_product_health",
+    "generate_executive_summary",
+    "get_anomalies",
+    "get_inventory_levels"
+  ]
+}
