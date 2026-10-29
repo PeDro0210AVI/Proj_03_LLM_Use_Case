@@ -2,10 +2,10 @@ use envconfig::Envconfig;
 
 #[derive(Envconfig)]
 pub struct Env {
-    #[envconfig(from = "HOST")]
+    #[envconfig(from = "HOST", default = "127.0.0.1")]
     pub host: String,
 
-    #[envconfig(from = "PORT")]
+    #[envconfig(from = "PORT", default = "8080")]
     pub port: usize,
 }
 
